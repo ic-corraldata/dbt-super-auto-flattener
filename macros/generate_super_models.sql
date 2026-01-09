@@ -1,23 +1,26 @@
-{% macro generate_super_models(table) %}
-    {% set plan = {"parent": {}, "children": []} %}
-    {% set base = table.split('.')[-1] %}
+{% macro generate_super_plan(table) %}
     {% set supers = get_super_columns(table) %}
+    {% if supers | length == 0 %}
+        {% do log("No SUPER columns found.", info=True) %}
+        {{ return(None) }}
+    {% endif %}
 
-    {% for col in supers %}
-        {% set tree = inspect_super_recursive(table, col) %}
-        {% do process_super_tree(plan, table, tree, col) %}
-    {% endfor %}
+    {% set plan = build_plan(table, supers) %}
 
-    {% do write_file("models/staging/" ~ base ~ "_flat.sql",
-        render_parent_model(table, plan)) %}
+    {% do log("===== SUPER FLATTEN PLAN =====", info=True) %}
+    {% do log("Table: " ~ table, info=True) %}
+    {% do log("Detected SUPER columns: " ~ supers | join(', '), info=True) %}
+
+    {% do log("===== MODEL: " ~ plan.parent.name ~ " =====", info=True) %}
+    {% do log(render_parent_model(plan.parent), info=True) %}
 
     {% for child in plan.children %}
-        {% do write_file("models/staging/" ~ child.name ~ ".sql",
-            render_child_model(table, child)) %}
+        {% do log("===== MODEL: " ~ child.name ~ " =====", info=True) %}
+        {% do log(render_child_model(child), info=True) %}
     {% endfor %}
 
-    {% do write_file("models/staging/super_models.yml",
-        render_yaml(base, plan)) %}
+    {% do log("===== SCHEMA YAML =====", info=True) %}
+    {% do log(render_schema_yaml(plan), info=True) %}
 
-    {{ return("SUPER models generated") }}
+    {{ return("Plan generated") }}
 {% endmacro %}
