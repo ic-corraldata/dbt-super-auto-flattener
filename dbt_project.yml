@@ -1,0 +1,9 @@
+name: 'dbt_super_auto_flattener'
+version: '1.0.0'
+config-version: 2
+
+macro-paths: ["macros"]
+
+packages:
+  - package: dbt-labs/dbt_utils
+    version: ">=1.0.0"
